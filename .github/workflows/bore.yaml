@@ -1,4 +1,4 @@
-name: Minecraft Bedrock Server
+name: Minecraft Bedrock (Auto-Fetch)
 on: workflow_dispatch
 
 jobs:
@@ -6,28 +6,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Dependencies
-        run: sudo apt-get install -y unzip libcurl4
-
-      - name: Download & Setup Bedrock Server
         run: |
-          # Download official server
-          curl -L -o bedrock-server.zip https://minecraft.azureedge.net
+          sudo apt-get update
+          sudo apt-get install -y unzip libcurl4 openssl jq
+
+      - name: Fetch and Setup Latest Server
+        run: |
+          # Automatically get the latest Linux download URL from Mojang's API
+          URL=$(curl -s https://net-secondary.web.minecraft-services.net/api/v1.0/download/links | jq -r '.result.links[] | select(.downloadType=="serverBedrockLinux") | .downloadUrl')
+          
+          echo "Downloading from: $URL"
+          curl -L -A "Mozilla/5.0" -o bedrock-server.zip "$URL"
+          
+          mkdir -p server
           unzip bedrock-server.zip -d server
-          cd server
-          # Set permissions
-          chmod +x bedrock_server
-          # Accept EULA automatically by starting once
-          echo "allow-cheats=true" >> server.properties
+          chmod +x server/bedrock_server
 
-      - name: Install Bore Tunnel
-        run: curl -fsSL https://trybore.com | bash
-
-      - name: Start Server and Tunnel
+      - name: Start Global Tunnel
         run: |
-          # 1. Start Minecraft Bedrock in the background
+          # Install Bore
+          curl -fsSL https://trybore.com | bash
+          
+          # Start Minecraft in the background
           cd server
           LD_LIBRARY_PATH=. ./bedrock_server &
           
-          # 2. Start Bore Tunnel (Bedrock uses 19132 by default)
-          # This will give you a global address like bore.pub:XXXXX
+          # Give it a few seconds to load the world
+          sleep 15
+          
+          # Expose Port 19132 (Default Bedrock Port)
           bore local 19132 --to bore.pub
