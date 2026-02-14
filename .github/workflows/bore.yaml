@@ -1,4 +1,4 @@
-name: Minecraft Bedrock (Stable Fetch)
+name: Minecraft Bedrock Server
 on: workflow_dispatch
 
 jobs:
@@ -6,30 +6,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Dependencies
-        run: sudo apt-get update && sudo apt-get install -y unzip libcurl4 openssl
-
-      - name: Download Minecraft Server
         run: |
-          # Using a direct link with a browser-like User Agent
-          # We use -f to fail the script if the download is blocked
-          curl -fL -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
-          -o bedrock.zip "https://minecraft.azureedge.net"
-          
-          # Check if the file is at least 50MB (to ensure it's not a tiny error page)
-          if [ $(stat -c%s "bedrock.zip") -lt 50000000 ]; then echo "Download failed or blocked!"; exit 1; fi
-          
-          unzip bedrock.zip -d server
-          chmod +x server/bedrock_server
+          sudo apt-get update
+          sudo apt-get install -y unzip libcurl4 openssl python3-pip
+          pip3 install gdown --break-system-packages
 
-      - name: Install Bore (Direct Binary)
+      - name: Download from Google Drive
+        run: |
+          gdown --id 1JS1Yc3Mwm_sY-kHczKfYLauCZ2-V-ExB -O bedrock.zip
+          mkdir -p server
+          unzip bedrock.zip -d server
+          # Making everything executable in case of subfolders
+          find server -type f -exec chmod +x {} +
+
+      - name: Install Bore Tunnel
         run: |
           curl -L -o bore.tar.gz https://github.com
           tar -xf bore.tar.gz
           sudo mv bore /usr/local/bin/
 
-      - name: Start Server & Global Tunnel
+      - name: Start Server and Tunnel
         run: |
           cd server
-          LD_LIBRARY_PATH=. ./bedrock_server &
+          # Finding the actual binary name if it's different
+          BINARY=$(find . -name "bedrock_server" -type f)
+          LD_LIBRARY_PATH=. $BINARY &
           sleep 20
           bore local 19132 --to bore.pub
