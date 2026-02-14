@@ -1,39 +1,20 @@
-name: Minecraft Bedrock Server
+name: Ultimate Minecraft Bedrock
 on: workflow_dispatch
 
 jobs:
-  run-mc:
+  run-server:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Dependencies
+      - name: Start Minecraft via Docker
         run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip libcurl4 openssl python3-pip
-          pip3 install gdown --break-system-packages
-
-      - name: Download and Unzip
-        run: |
-          gdown --id 1JS1Yc3Mwm_sY-kHczKfYLauCZ2-V-ExB -O bedrock.zip
-          unzip bedrock.zip -d .
-          # This finds the bedrock_server file wherever it is and makes it executable
-          find . -name "bedrock_server" -exec chmod +x {} +
-
-      - name: Install Bore (Quick Install)
-        run: |
-          curl -L https://github.com | tar zx
-          sudo mv bore /usr/local/bin/
-
-      - name: Start Server and Tunnel
-        run: |
-          # Find the directory containing bedrock_server
-          SERVER_DIR=$(dirname $(find . -name "bedrock_server" -type f | head -n 1))
-          cd "$SERVER_DIR"
+          # 1. Run the most popular Bedrock Docker image
+          # This avoids all the 'unzip' and 'curl' errors
+          docker run -d -e EULA=TRUE -p 19132:19132/udp itzg/minecraft-bedrock-server
           
-          echo "Starting Minecraft from: $SERVER_DIR"
-          LD_LIBRARY_PATH=. ./bedrock_server &
-          
-          echo "Waiting 30s for the world to load..."
+          echo "Server is booting in Docker..."
           sleep 30
-          
-          # Start the tunnel
-          bore local 19132 --to bore.pub
+
+      - name: Tunnel via Pinggy (UDP Mode)
+        run: |
+          # We use the -T and -o flags to force SSH to work in GitHub's fake terminal
+          ssh -T -o StrictHostKeyChecking=no -p 443 -R0:localhost:19132 u@a.pinggy.io
