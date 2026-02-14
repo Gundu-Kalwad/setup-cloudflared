@@ -1,0 +1,33 @@
+name: Minecraft Bedrock Server
+on: workflow_dispatch
+
+jobs:
+  run-mc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Dependencies
+        run: sudo apt-get install -y unzip libcurl4
+
+      - name: Download & Setup Bedrock Server
+        run: |
+          # Download official server
+          curl -L -o bedrock-server.zip https://minecraft.azureedge.net
+          unzip bedrock-server.zip -d server
+          cd server
+          # Set permissions
+          chmod +x bedrock_server
+          # Accept EULA automatically by starting once
+          echo "allow-cheats=true" >> server.properties
+
+      - name: Install Bore Tunnel
+        run: curl -fsSL https://trybore.com | bash
+
+      - name: Start Server and Tunnel
+        run: |
+          # 1. Start Minecraft Bedrock in the background
+          cd server
+          LD_LIBRARY_PATH=. ./bedrock_server &
+          
+          # 2. Start Bore Tunnel (Bedrock uses 19132 by default)
+          # This will give you a global address like bore.pub:XXXXX
+          bore local 19132 --to bore.pub
