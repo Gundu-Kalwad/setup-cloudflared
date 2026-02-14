@@ -1,21 +1,30 @@
-name: Ultimate Minecraft Bedrock
+name: Minecraft Bedrock Server (Stay Alive)
 on: workflow_dispatch
 
 jobs:
-  run-server:
+  run-mc:
     runs-on: ubuntu-latest
+    timeout-minutes: 360 # Keeps the total job from timing out early
     steps:
-      - name: Start Minecraft & Bore Tunnel
+      - name: Start Minecraft and Bore Tunnel
         run: |
-          # 1. Start Minecraft Bedrock
+          # 1. Start the Minecraft Bedrock Server
+          # Uses host network to ensure ports are mapped correctly
           docker run -d --network host -e EULA=TRUE itzg/minecraft-bedrock-server
           
-          # 2. Start Bore Tunnel via Docker (Fixes the download error)
-          # This will expose UDP port 19132
+          # 2. Start the Bore Tunnel
+          # This maps your local 19132 port to a global bore.pub port
           docker run -d --network host ekzhang/bore local 19132 --to bore.pub
           
-          echo "Waiting 60s for full startup..."
+          echo "Waiting 60s for the server to initialize..."
           sleep 60
           
-          # 3. Print the logs so you can see your PORT
+          # 3. Print the connection details
+          echo "-----------------------------------------------------"
           docker logs $(docker ps -q --filter ancestor=ekzhang/bore)
+          echo "-----------------------------------------------------"
+          
+          # 4. Keep the server alive for 6 hours
+          echo "Server is running! Check the port above (e.g., bore.pub:17999)"
+          echo "Do not cancel this workflow or the server will stop."
+          sleep 21600
