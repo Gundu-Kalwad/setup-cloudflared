@@ -10,7 +10,6 @@ jobs:
           # 1. Start a simple web server in the background
           python3 -m http.server 8080 & 
           
-          # 2. Use SSH to create a Global Bridge
-          # This command includes "-t" for interactive-style output
-          # and uses the "free.pinggy.online" domain for zero-config.
-          ssh -o StrictHostKeyChecking=no -p 443 -R0:localhost:8080 free.pinggy.online
+          # 2. Connect to Pinggy using the 'a.pinggy.io' address
+          # The -T flag prevents the "Pseudo-terminal" error
+          ssh -T -o StrictHostKeyChecking=no -p 443 -R0:localhost:8080 a.pinggy.io
