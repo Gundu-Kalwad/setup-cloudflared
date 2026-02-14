@@ -8,31 +8,30 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y unzip libcurl4 openssl jq
+          sudo apt-get install -y unzip libcurl4 openssl
 
-      - name: Fetch and Setup Latest Server
+      - name: Fetch Latest Minecraft Server
         run: |
-          # Automatically get the latest Linux download URL from Mojang's API
-          URL=$(curl -s https://net-secondary.web.minecraft-services.net/api/v1.0/download/links | jq -r '.result.links[] | select(.downloadType=="serverBedrockLinux") | .downloadUrl')
-          
-          echo "Downloading from: $URL"
-          curl -L -A "Mozilla/5.0" -o bedrock-server.zip "$URL"
-          
-          mkdir -p server
-          unzip bedrock-server.zip -d server
+          # Downloading the 1.21.60.10 version directly
+          curl -L -A "Mozilla/5.0" -o bedrock.zip https://www.minecraft.net
+          unzip bedrock.zip -d server
           chmod +x server/bedrock_server
 
-      - name: Start Global Tunnel
+      - name: Install Bore (Direct Binary)
         run: |
-          # Install Bore
-          curl -fsSL https://trybore.com | bash
-          
-          # Start Minecraft in the background
+          # Download the Linux binary directly from GitHub to avoid the 'newline' error
+          curl -L -o bore.tar.gz https://github.com
+          tar -xf bore.tar.gz
+          sudo mv bore /usr/local/bin/
+
+      - name: Start Server & Global Tunnel
+        run: |
           cd server
+          # Start Minecraft in background
           LD_LIBRARY_PATH=. ./bedrock_server &
           
-          # Give it a few seconds to load the world
-          sleep 15
+          echo "Waiting 20s for Minecraft to boot..."
+          sleep 20
           
-          # Expose Port 19132 (Default Bedrock Port)
+          # Start Bore on Port 19132
           bore local 19132 --to bore.pub
