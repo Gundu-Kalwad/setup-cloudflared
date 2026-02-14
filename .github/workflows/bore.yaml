@@ -1,4 +1,4 @@
-name: Minecraft Bedrock (Auto-Fetch)
+name: Minecraft Bedrock (Stable Fetch)
 on: workflow_dispatch
 
 jobs:
@@ -6,20 +6,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip libcurl4 openssl
+        run: sudo apt-get update && sudo apt-get install -y unzip libcurl4 openssl
 
-      - name: Fetch Latest Minecraft Server
+      - name: Download Minecraft Server
         run: |
-          # Downloading the 1.21.60.10 version directly
-          curl -L -A "Mozilla/5.0" -o bedrock.zip https://www.minecraft.net
+          # Using a direct link with a browser-like User Agent
+          # We use -f to fail the script if the download is blocked
+          curl -fL -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+          -o bedrock.zip "https://minecraft.azureedge.net"
+          
+          # Check if the file is at least 50MB (to ensure it's not a tiny error page)
+          if [ $(stat -c%s "bedrock.zip") -lt 50000000 ]; then echo "Download failed or blocked!"; exit 1; fi
+          
           unzip bedrock.zip -d server
           chmod +x server/bedrock_server
 
       - name: Install Bore (Direct Binary)
         run: |
-          # Download the Linux binary directly from GitHub to avoid the 'newline' error
           curl -L -o bore.tar.gz https://github.com
           tar -xf bore.tar.gz
           sudo mv bore /usr/local/bin/
@@ -27,11 +30,6 @@ jobs:
       - name: Start Server & Global Tunnel
         run: |
           cd server
-          # Start Minecraft in background
           LD_LIBRARY_PATH=. ./bedrock_server &
-          
-          echo "Waiting 20s for Minecraft to boot..."
           sleep 20
-          
-          # Start Bore on Port 19132
           bore local 19132 --to bore.pub
