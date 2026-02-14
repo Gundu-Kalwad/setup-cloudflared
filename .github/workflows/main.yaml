@@ -1,0 +1,25 @@
+name: Playit Tunnel Server
+on: workflow_dispatch
+
+jobs:
+  run-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install playit agent
+        run: |
+          curl -SsL https://playit-cloud.github.io/ppa/key.gpg | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/playit.gpg
+          echo "deb [signed-by=/etc/apt/trusted.gpg.d/playit.gpg] https://playit-cloud.github.io/ppa/data ./" | sudo tee /etc/apt/sources.list.d/playit-cloud.list
+          sudo apt update && sudo apt install playit -y
+
+      - name: Run playit tunnel
+        env:
+          PLAYIT_SECRET_KEY: ${{ secrets.PLAYIT_SECRET_KEY }}
+        run: |
+          # Start playit in the background
+          playit --secret-key "$PLAYIT_SECRET_KEY" & 
+          sleep 10 # Give it a moment to connect
+
+      - name: Start your service
+        run: |
+          # Example: A simple Python web server on port 8080
+          python3 -m http.server 8080
