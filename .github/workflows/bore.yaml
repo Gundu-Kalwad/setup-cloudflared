@@ -5,17 +5,17 @@ jobs:
   run-server:
     runs-on: ubuntu-latest
     steps:
-      - name: Start Minecraft via Docker (Host Mode)
+      - name: Start Minecraft & Bore Tunnel
         run: |
-          # --network host makes the Minecraft port 19132 
-          # accessible directly on the runner's localhost
+          # 1. Start Minecraft Bedrock
           docker run -d --network host -e EULA=TRUE itzg/minecraft-bedrock-server
           
-          echo "Server is booting... waiting 40s for full startup"
-          sleep 40
-
-      - name: Tunnel via Pinggy (UDP Mode)
-        run: |
-          # -T and -o for non-interactive shell
-          # u@ prefix for UDP protocol (required for Bedrock)
-          ssh -T -o StrictHostKeyChecking=no -p 443 -R0:localhost:19132 u@a.pinggy.io
+          # 2. Start Bore Tunnel via Docker (Fixes the download error)
+          # This will expose UDP port 19132
+          docker run -d --network host ekzhang/bore local 19132 --to bore.pub
+          
+          echo "Waiting 60s for full startup..."
+          sleep 60
+          
+          # 3. Print the logs so you can see your PORT
+          docker logs $(docker ps -q --filter ancestor=ekzhang/bore)
